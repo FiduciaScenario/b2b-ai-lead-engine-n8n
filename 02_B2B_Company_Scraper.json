@@ -1,0 +1,370 @@
+{
+  "name": "02_B2B_Company_Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f4130f5a-ed27-4c01-9e7f-7f9b0d6f1b32",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -336,
+        -64
+      ],
+      "id": "b3ef0679-be7d-4c28-aaf4-db3030140e13",
+      "name": "Webhook",
+      "webhookId": "f4130f5a-ed27-4c01-9e7f-7f9b0d6f1b32"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const body = item.json.body || {};\n  const rawEmail = (body.email || '').trim().toLowerCase();\n  const rawName = (body.full_name || '').trim();\n  const domain = rawEmail.includes('@') ? rawEmail.split('@')[1] : 'unknown';\n\n  output.push({\n    json: {\n      clean_name: rawName,\n      clean_email: rawEmail,\n      company_domain: domain,\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -64
+      ],
+      "id": "a5e635e7-f0d6-473c-b432-2e3041336fe6",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "0ec368db-e450-425e-aaff-d2c570d7e07f",
+              "leftValue": "={{ $json.company_domain }}",
+              "rightValue": "gmail.com",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        144,
+        -64
+      ],
+      "id": "4029d1b0-dd7f-477a-bffa-6d72cb413863",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://dns.google/resolve?name={{ $json.company_domain }}&type=MX",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        -80
+      ],
+      "id": "33a7ee54-cf08-488b-b7e2-d44f18d8f677",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca499ebd-0f7e-4669-acde-36cec44eadff",
+              "name": "lead_name",
+              "value": "={{ $('Code in JavaScript').item.json.clean_name }}",
+              "type": "string"
+            },
+            {
+              "id": "77bdc284-c93d-4348-be21-7cc171738d5b",
+              "name": "lead_email",
+              "value": "={{ $('Code in JavaScript').item.json.clean_email }}",
+              "type": "string"
+            },
+            {
+              "id": "63edd080-c491-4130-b358-7f1cf5224804",
+              "name": "domain_status",
+              "value": "={{ $('HTTP Request').item.json.Status === 0 ? 'ZWERYFIKOWANA_FIRMA' : 'BLEDNA_DOMENA' }}",
+              "type": "string"
+            },
+            {
+              "id": "bb4c0e79-557a-4a39-984b-d278d1bf9494",
+              "name": "=website_status",
+              "value": "={{ $json.company_header ? $json.company_header : 'STRONA_CHRONIONA_ANTYBOT_403' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1088,
+        -80
+      ],
+      "id": "a7879cbd-08cb-48b0-b934-bd66c0c8eb46",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1e8bc0d5-5785-444b-ae36-62cc8bad4095",
+              "name": "clean_email",
+              "value": "={{ $json.clean_email }}",
+              "type": "string"
+            },
+            {
+              "id": "0a13980c-3cd8-4998-ad8d-9cf2e3314c34",
+              "name": "status_leada",
+              "value": "ODRZUCONY_DARMOWY_EMAIL",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        368,
+        128
+      ],
+      "id": "d0614ea1-d313-458f-b818-6a474161936e",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        -80
+      ],
+      "id": "f27e9f62-8a8e-4028-9bec-9e669fed0003",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/d99cbefa-3c67-41be-ab17-e9765798704f",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "verified_b2b_batch",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        -80
+      ],
+      "id": "ee1c4629-e406-4b16-9db0-7e31ac33de80",
+      "name": "Send_to_CRM"
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $('Code in JavaScript').item.json.company_domain }}\n",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        640,
+        -80
+      ],
+      "id": "6ac73cb9-8b33-4e29-8a4f-fcc9dc292cb4",
+      "name": "Scrape_Company_Website",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "company_header",
+              "cssSelector": "title"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -80
+      ],
+      "id": "1ea1cb62-d498-4a46-9051-a30187c8cabf",
+      "name": "HTML",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "body": {
+            "full_name": " Carlos Rodriguez ",
+            "email": " CARLOS@N8N.IO "
+          }
+        }
+      },
+      {
+        "json": {
+          "body": {
+            "full_name": " Jan Kowalski ",
+            "email": " jan.kowalski123@GMAIL.COM "
+          }
+        }
+      },
+      {
+        "json": {
+          "body": {
+            "full_name": " Anna Nowak ",
+            "email": " ANNA@ALLEGRO.PL "
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Scrape_Company_Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send_to_CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape_Company_Website": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "lTK2s3VFpookmM1k",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "4111f7ed-fcad-46fb-8997-551407bab607",
+  "meta": {
+    "instanceId": "72c8eabe7804f39cd7e58bae2c3fb053054abde2acff93fb202ed190b110da9c"
+  },
+  "nodeGroups": [],
+  "id": "wgiwESWXeFkCZd1B",
+  "tags": []
+}

@@ -1,0 +1,77 @@
+{
+  "name": "GLOBAL_ERROR_HANDLER",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6ac22220-8f60-43de-98cd-dc079d3e7961",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14731f05-b368-4991-880d-7d0078aff951",
+              "name": "zapsuty_scenariusz",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2e9acd58-8d66-4d41-85eb-4cd7d8712ba9",
+              "name": "W_Ktorym_klocku",
+              "value": "={{ $json.execution.lastNodeExecuted }}",
+              "type": "string"
+            },
+            {
+              "id": "59a25ebe-0c3d-43ba-81c5-d6b5dcedc56b",
+              "name": "powod_bledu",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "cad37e69-ebe6-48cf-8cac-5fbd4bef4ae1",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d22a4967-902a-4853-9a75-3411b73cb977",
+  "meta": {
+    "instanceId": "72c8eabe7804f39cd7e58bae2c3fb053054abde2acff93fb202ed190b110da9c"
+  },
+  "nodeGroups": [],
+  "id": "lTK2s3VFpookmM1k",
+  "tags": []
+}

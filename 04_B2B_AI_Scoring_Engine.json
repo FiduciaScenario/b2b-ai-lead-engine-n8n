@@ -1,0 +1,473 @@
+{
+  "name": "04_B2B_AI_Scoring_Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ae30c98c-2761-49e9-ac91-42e70e879f39",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -336,
+        -64
+      ],
+      "id": "e005d0df-1248-45d9-af96-fba4b0c2e676",
+      "name": "Webhook",
+      "webhookId": "ae30c98c-2761-49e9-ac91-42e70e879f39"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst output = [];\n\nfor (const item of items) {\n  const body = item.json.body || {};\n  const rawEmail = (body.email || '').trim().toLowerCase();\n  const rawName = (body.full_name || '').trim();\n  const domain = rawEmail.includes('@') ? rawEmail.split('@')[1] : 'unknown';\n\n  output.push({\n    json: {\n      clean_name: rawName,\n      clean_email: rawEmail,\n      company_domain: domain,\n      processed_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -64
+      ],
+      "id": "a4299359-8543-4267-b5e9-d76a4b000d2e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "0ec368db-e450-425e-aaff-d2c570d7e07f",
+              "leftValue": "={{ $json.company_domain }}",
+              "rightValue": "gmail.com",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        144,
+        -64
+      ],
+      "id": "668a475b-5061-4feb-9d17-e9dd517872d3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://dns.google/resolve?name={{ $json.company_domain }}&type=MX",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        416,
+        -80
+      ],
+      "id": "506a2628-3ca6-4667-a8ec-20b67fb463e3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ca499ebd-0f7e-4669-acde-36cec44eadff",
+              "name": "lead_name",
+              "value": "={{ $('Code in JavaScript').item.json.clean_name }}",
+              "type": "string"
+            },
+            {
+              "id": "77bdc284-c93d-4348-be21-7cc171738d5b",
+              "name": "lead_email",
+              "value": "={{ $('Code in JavaScript').item.json.clean_email }}",
+              "type": "string"
+            },
+            {
+              "id": "63edd080-c491-4130-b358-7f1cf5224804",
+              "name": "domain_status",
+              "value": "={{ $('HTTP Request').item.json.Status === 0 ? 'ZWERYFIKOWANA_FIRMA' : 'BLEDNA_DOMENA' }}",
+              "type": "string"
+            },
+            {
+              "id": "bb4c0e79-557a-4a39-984b-d278d1bf9494",
+              "name": "=website_status",
+              "value": "=\n{{ $('HTML').item.json.company_header ? $('HTML').item.json.company_header : 'STRONA_CHRONIONA_ANTYBOT_403' }}\n",
+              "type": "string"
+            },
+            {
+              "id": "05e31d44-a611-4382-9cad-3b2006eebc0a",
+              "name": "=ai_sales_icebreaker",
+              "value": "={{ $json.output.icebreaker }}",
+              "type": "string"
+            },
+            {
+              "id": "b1f19645-2ca4-4986-b51b-3275f8b4fcdb",
+              "name": "=lead_score",
+              "value": "={{ $json.output.lead_score }}",
+              "type": "string"
+            },
+            {
+              "id": "31d4cd2c-21ab-4661-b1f3-da6035c01525",
+              "name": "industry",
+              "value": "={{ $json.output.industry }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1472,
+        -80
+      ],
+      "id": "a7e2be48-8c58-459b-9b20-0f02f53d8009",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1e8bc0d5-5785-444b-ae36-62cc8bad4095",
+              "name": "clean_email",
+              "value": "={{ $json.clean_email }}",
+              "type": "string"
+            },
+            {
+              "id": "0a13980c-3cd8-4998-ad8d-9cf2e3314c34",
+              "name": "status_leada",
+              "value": "ODRZUCONY_DARMOWY_EMAIL",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        368,
+        128
+      ],
+      "id": "87dcc95c-33e0-40aa-a25a-d2e46dd04a1f",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        -80
+      ],
+      "id": "2afcd9a2-851c-48dc-bfab-36a833245c4f",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/7bf18f89-bf9b-423c-8639-435bd4d89b74",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "verified_b2b_batch",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1936,
+        -80
+      ],
+      "id": "8d4b76a1-3a4f-40b2-8a11-971f15de8864",
+      "name": "Send_to_CRM"
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $('Code in JavaScript').item.json.company_domain }}\n",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        640,
+        -80
+      ],
+      "id": "f6e489bd-e707-4813-ba58-7be85a1c83cf",
+      "name": "Scrape_Company_Website",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "company_header",
+              "cssSelector": "title"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        -80
+      ],
+      "id": "e507df7f-44cb-4fee-98e0-e8dec585370d",
+      "name": "HTML",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Przeanalizuj poniższego leada B2B. Oceń jego potencjał zakupowy w skali 1-100 (lead_score), określ branżę (industry) oraz napisz 1 zdanie otwierające maila po polsku (icebreaker).\n\nImię: {{ $('Code in JavaScript').item.json.clean_name }}\nDomena: {{ $('Code in JavaScript').item.json.company_domain }}\nNagłówek WWW: {{ $json.company_header || 'Brak (403) - rozpoznaj po domenie' }}\n",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1088,
+        -80
+      ],
+      "id": "209cb04c-026f-40c5-aedd-5735f3ddaae2",
+      "name": "Basic LLM Chain",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        128
+      ],
+      "id": "6d4a6af8-eea2-4ff0-ab58-5c4f986cbe55",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xXJH2HMzFeScAiX0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"lead_score\": 85,\n  \"industry\": \"SaaS / Automatyzacja AI\",\n  \"icebreaker\": \"Cześć Carlos, gratuluję rozwoju platformy n8n!\"\n}\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        128
+      ],
+      "id": "80ad2569-eb50-4c99-8d2d-051d4d2c858d",
+      "name": "Structured Output Parser"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "body": {
+            "full_name": " Carlos Rodriguez ",
+            "email": " CARLOS@N8N.IO "
+          }
+        }
+      },
+      {
+        "json": {
+          "body": {
+            "full_name": " Jan Kowalski ",
+            "email": " jan.kowalski123@GMAIL.COM "
+          }
+        }
+      },
+      {
+        "json": {
+          "body": {
+            "full_name": " Anna Nowak ",
+            "email": " ANNA@ALLEGRO.PL "
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Scrape_Company_Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send_to_CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape_Company_Website": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "lTK2s3VFpookmM1k",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "18b51b68-a6d2-4a90-a653-a53b5807d7db",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "72c8eabe7804f39cd7e58bae2c3fb053054abde2acff93fb202ed190b110da9c"
+  },
+  "nodeGroups": [],
+  "id": "ATT7EHRMTzD9nbIu",
+  "tags": []
+}

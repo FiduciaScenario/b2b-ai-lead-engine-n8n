@@ -1,0 +1,198 @@
+{
+  "name": "06_B2B_AI_CRM_Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b089d58e-6d99-4efc-9c02-c84ec9f33f10",
+      "name": "When chat message received",
+      "webhookId": "14ca92d5-f47c-43b8-a258-9486263ee90b"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Jesteś analitykiem CRM B2B. Przy każdym pytaniu o klientów lub leady ZAWSZE użyj narzędzia Supabase, aby pobrać aktualne dane z tabeli vip_leads. Nigdy nie zmyślaj danych. Podawaj imię, e-mail, branżę, punktację (lead_score) oraz gotowy icebreaker"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "37996d50-9246-4fb0-9181-09f108ee92d5",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        96,
+        208
+      ],
+      "id": "575ce69f-7b6d-41da-90fa-a09336fc9f20",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xXJH2HMzFeScAiX0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        208
+      ],
+      "id": "ac29538f-9fe4-4533-9d7f-475aaec761a9",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "tableId": "vip_leads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lead_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "lead_email",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "industry",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "lead_score",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "icebreaker",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        480,
+        144
+      ],
+      "id": "150b73ea-020d-4334-a3d4-3bda64356280",
+      "name": "Create a row in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "WDhD64YDRG0AbXQ9",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "vip_leads"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        384,
+        208
+      ],
+      "id": "e532c927-5b46-4972-a8bd-5fcfa9fd2cf2",
+      "name": "Get many rows in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "WDhD64YDRG0AbXQ9",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "452d103b-9e01-4c4d-aa09-20511bb058dd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "72c8eabe7804f39cd7e58bae2c3fb053054abde2acff93fb202ed190b110da9c"
+  },
+  "nodeGroups": [],
+  "id": "0HED7Ple7jS7uM0x",
+  "tags": []
+}
